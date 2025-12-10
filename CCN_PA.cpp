@@ -9,9 +9,12 @@ using std::cout;
 using std::cin;
 using std::string;
 
-//Smaller helper fucntion to animate a growing arrow progress while sleeping for propagation delay
+//Smaller helper fucntion to animate a growing arrow which progresses while sleeping for propagation delay
 static void animateDelay(int propDelay) {
-    if (propDelay <= 0) return;
+    
+    if (propDelay <= 0) {
+        return;
+    }
 
     const int msPerDash = 100; // Smaller number -> more dashes
     int steps = propDelay / msPerDash;
@@ -52,6 +55,7 @@ static void animateDelay(int propDelay) {
     cout<<"\n\n";
 }
 
+//Packet object class   
 class packet {
     public:
         int data;
@@ -63,6 +67,7 @@ class packet {
         bool timeOut;
 };
 
+//Sender object class
 class sender {
         int SeqNum;
         int windowSize;
@@ -90,14 +95,15 @@ public:
             }
         }
 
+        // Function that checks for retransmission.
         // Returns an array of packets that were not acknowledged or were lost.
         // Must delete[] the returned array when done.
-        packet* retransmit(int numPackets, packet packets[], int &retransmitCount) {
+        packet *retransmit(int numPackets, packet packets[], int &retransmitCount) {
             
             // Reset count
             retransmitCount = 0;
 
-            
+            //In case of no packets
             if (numPackets <= 0 || packets == nullptr) {
                 return nullptr;
             }
@@ -110,15 +116,21 @@ public:
                 }
             }
 
+            //In case no packets need retransmission
             if (retransmitCount == 0) {
                 return nullptr;
             }
 
             // Allocate array for retransmission
-            packet* toRetransmit = new packet[retransmitCount];
+            packet *toRetransmit = new packet[retransmitCount];
             int j = 0;
+            
+            //Recount from the original array,
+            //marking packets for retransmission
+            //Fill the retransmission array
             for (int i = 0; i < numPackets; ++i) {
                 if (packets[i].drop || packets[i].timeOut) {
+                    
                     toRetransmit[j++] = packets[i];
                 }
             }
@@ -127,6 +139,7 @@ public:
 
 };
 
+//Receiver object class
 class receiver { 
     int expectedSeqNum;
     int windowSize;
@@ -136,7 +149,7 @@ class receiver {
     public:
     packet *buffer;
         
-    //Buffer array constructor
+    //Reciever's buffer array constructor
         void setup(int expectedSeqNum, int numPackets, int windowSize) {
             this->expectedSeqNum = expectedSeqNum;
             this->windowSize = windowSize;
@@ -200,18 +213,18 @@ int main() {
     }
 
     //Initialize sender with parameters
-    cout<<"Preparing sender... \n\n";
+    //cout<<"Preparing sender... \n\n";
   
-    //Not sure if I should set nextSeqNum to 0 here or 1
+    //Sending input data to sender setup function
     theSender.setup(0, windowSize, numPackets, std::chrono::milliseconds(propDelay));
 
-    cout<<"Sender ready! \n\n";
+    //cout<<"Sender ready! \n\n";
 
-    cout<<"Preparing receiver... \n\n";
+    //cout<<"Preparing receiver... \n\n";
 
     theReceiver.setup(0, numPackets, windowSize);
 
-    cout<<"Receiver ready! \n\n";
+    //cout<<"Receiver ready! \n\n";
 
     //-------------------------------------------------------------------
 
@@ -243,23 +256,26 @@ int main() {
                     continue;
                 }
 
+                //If the user selects 0 packets to lose, exit both loops
                 else if(pLost == 0) {
                     cout<<"\nNo packets will be lost.\n\n";
                     loop = false;
                     loop2 = false;
                 }
 
+                //Checks if the input is in range
                 else if(pLost < 0 || pLost > numPackets) {
                     cout<<"\nInvalid number of packets to lose. Try again.\n\n";
                 }
 
+                //Reports how many packets will be lost and exits loop
                 else {
-                    cout<<"\n"<<pLost<<" packets will be lost.\n\n";
+                    //cout<<"\n"<<pLost<<" packets will be lost.\n\n";
                     loop2 = false;
                 }
             }
 
-            cout<<"Specify which packets you would like to lose by sequence number (0 to "<<numPackets - 1<<"):\n";
+            cout<<"\nSpecify which packets you would like to lose by sequence number (0 to "<<numPackets - 1<<"):\n";
             int seqToLose = 0;
             cout<<"\n";
 
@@ -284,19 +300,19 @@ int main() {
                     continue;
                 }
 
+                //Next, make sure packet isn't already marked to be lost
                 else if (theSender.packets[seqToLose].drop) {
                     cout << "Packet " << seqToLose << " is already marked to be lost. Try again.\n";
                     i--; // repeat this iteration
                     continue;
                 }
 
-                // valid input AND in range -> mark packet to be dropped later
+                // valid input AND in range AND unmarked -> mark packet to be dropped later
                 else {
                     theSender.packets[seqToLose].drop = true;
-                    cout << "Packet " << seqToLose << " will be lost.\n";
+                    //cout << "Packet " << seqToLose << " will be lost.\n";
                 }
 
-                //Need to store these somewhere to reference later
             }
             // finished manual selection; exit menu
             loop = false;
@@ -345,7 +361,7 @@ int main() {
 
         //if all packets are lost, no point in asking about ack loss
         if(pLost == numPackets) {
-            cout<<"All packets are lost; skipping acknowledgement loss setup.\n\n";
+            cout<<"All packets are lost, skipping acknowledgement loss setup.\n\n";
             break;
         }
         
@@ -382,12 +398,12 @@ int main() {
                 }
 
                 else {
-                    cout<<"\n"<<noAck<<" acknowledgements will be lost.\n\n";
+                    //cout<<"\n"<<noAck<<" acknowledgements will be lost.\n\n";
                     loop2 = false;
                 }
             }
 
-            cout<<"Specify which packets you would like to lose acknowledgement for by sequence number (0 to "<<numPackets - 1<<"):\n";
+            cout<<"\nSpecify which packets you would like to lose acknowledgement for by sequence number (0 to "<<numPackets - 1<<"):\n";
             int seqToLose = 0;
             cout<<"\n";
 
@@ -429,10 +445,8 @@ int main() {
                 // valid input AND in range -> mark packet to be dropped later
                 else {
                     theSender.packets[seqToLose].timeOut = true;
-                    cout << "Packet " << seqToLose << " will not be acknowledged.\n";
+                    //cout << "Packet " << seqToLose << " will not be acknowledged.\n";
                 }
-
-                //Need to store these somewhere to reference later
             }
             // finished manual selection; exit menu
             loop = false;
@@ -488,19 +502,24 @@ int main() {
     
     cout<<"\nStarting simulation...\n\n";
 
+    
+
     //-------------------------------------------------------------------
 
+    cout<<"\n----------------- Initial Transmission Phase ----------------\n\n";
+
+    cout<<"\n\n";
 
     //Make sure the "timer" starts AFTER all other initializations
     auto start = std::chrono::steady_clock::now();
-    cout << "Timer starting now!\n\n";
+    //cout << "Timer starting now!\n\n";
 
     if (numPackets == 0) {
         cout << "No packets to send. Exiting simulation.\n";
         return 0;
     }
 
-     //Initial transmission phase
+    //Initial transmission phase
     else{
         
         int sentInWindow = 0;
@@ -511,7 +530,7 @@ int main() {
 
             // Handle packet outcome and print status first
             if (theSender.packets[i].drop) {
-                cout << "Packet " << theSender.packets[i].seqNum << " was dropped and not received by receiver.\n\n";
+                cout << "Packet " << theSender.packets[i].seqNum << " was dropped or lost during transmission, and not received by the receiver.\n\n";
             }
             else if (theSender.packets[i].timeOut) {
                 cout << "Acknowledgement for packet " << theSender.packets[i].seqNum << " was not received.\n\n";
@@ -528,7 +547,7 @@ int main() {
                  cout << "Packet " << theSender.packets[i].seqNum << " received by receiver @ "
                      << std::chrono::duration<double>(now - start).count() << " seconds.\n";
 
-                 cout << "\nAcknowledgement for packet " << theReceiver.buffer[i].seqNum << " sent back to sender.\n\n";
+                 cout << "\nAcknowledgement for packet " << theReceiver.buffer[i].seqNum << " sent back to the sender.\n\n";
 
                  // count this successful reception
                  ++totalRecieved;
@@ -544,6 +563,29 @@ int main() {
                 sentInWindow = 0;
             }
         }
+
+        //-------------------------------------------------------------------
+        
+        cout<<"\n\n";
+
+        cout<<"----------------- Buffer Statistics ----------------\n\n";
+
+        cout<<"\n\n";
+
+        //Reads the receiver buffer packets and prints acknowledgements
+        cout<<"Current status of reciever buffer:\n\n";
+        for (int i = 0; i < numPackets; i++) {
+            
+            if (theReceiver.buffer[i].ack) {
+                cout << "Packet " << theReceiver.buffer[i].seqNum << " : Acknowledged\n\n";
+            }
+            
+            else {
+                cout << "Packet " << theReceiver.buffer[i].seqNum << " : Not Acknowledged\n\n";
+            }
+        }
+
+        //-------------------------------------------------------------------
 
         //Now, retransmission of all lost and unacknowledged packets
 
@@ -579,29 +621,29 @@ int main() {
                     retransmitArr[i].drop = false;
                 }
 
-                 // Simulate packet arrival at receiver using the packet's seqNum
-                 int seq = retransmitArr[i].seqNum;
-                 theReceiver.buffer[seq] = retransmitArr[i];
-                 auto now = std::chrono::steady_clock::now();
+                // Simulate packet arrival at receiver using the packet's seqNum
+                int seq = retransmitArr[i].seqNum;
+                theReceiver.buffer[seq] = retransmitArr[i];
+                auto now = std::chrono::steady_clock::now();
 
-                 theReceiver.buffer[seq].ackTime = now;
-                 retransmitArr[i].ackTime = now;
+                theReceiver.buffer[seq].ackTime = now;
+                retransmitArr[i].ackTime = now;
 
-                      theReceiver.buffer[seq].ack = true;
+                theReceiver.buffer[seq].ack = true;
 
-                      // count this successful retransmission reception
-                      ++totalRecieved;
+                // count this successful retransmission reception
+                ++totalRecieved;
 
-                      // IMPORTANT: update the sender's packet record so it is no longer
-                      // selected for retransmission in future passes.
-                 if (seq >= 0 && seq < numPackets) {
+                // Update the sender's packet record so it is no longer
+                // selected for retransmission in future passes.
+                if (seq >= 0 && seq < numPackets) {
                     theSender.packets[seq].drop = false;
                     theSender.packets[seq].timeOut = false;
                     theSender.packets[seq].ack = true;
                     theSender.packets[seq].ackTime = now;
-                 }
+                }
 
-                 cout << "Packet " << seq << " received by receiver @ "
+                cout << "Packet " << seq << " received by receiver @ "
                      << std::chrono::duration<double>(now - start).count() << " seconds.\n\n";
 
                 // After processing the packet, count it toward the current window
@@ -620,16 +662,47 @@ int main() {
 
         cout << "All retransmissions complete.\n\n";
 
+        cout<<"\n\n";
+
+        cout<< "----------------- Send Off Phase ----------------\n\n";
+
+        cout<<"\n\n";
+
+        //Reset sentInWindow for final send-off phase
+        sentInWindow = 0;
+        for (int i = 0; i < numPackets; i++) {
+
+            theReceiver.buffer[i].sendTime = std::chrono::steady_clock::now();
+            // count this transmission attempt
+            ++totalSent;
+
+            //"Send" the packets to the application layer
+            cout << "Packet " << theReceiver.buffer[i].seqNum << " sent to application layer @ "
+                 << std::chrono::duration<double>(theReceiver.buffer[i].sendTime - start).count() << " seconds.\n\n";
+
+            // After processing the packet, count it toward the current window
+            ++sentInWindow;
+
+            // If we've sent a full window (and it's not the very last packet), show propagation delay
+            if (windowSize > 0 && sentInWindow >= windowSize && i != numPackets - 1) {
+                cout << "Sending packets... ";
+                animateDelay(propDelay);
+                sentInWindow = 0;
+            }
+
+        }
+    }
+
+        cout << "Simulation complete!\n\n";
+
+        cout<<"----------------- Statistics ----------------\n\n";
+
         // Print summary statistics
-        cout << "Simulation complete! Summary:\n";
         cout << "  Total transmission attempts: " << totalSent << "\n";
         cout << "  Total successful receptions: " << totalRecieved << "\n";
         cout << "  Total retransmissions: " << totalRetrans << "\n\n";
 
-        cout << "Exiting now.\n";
-
-        
-    }
+        cout << "Exiting now.\n";   
 
     return 0;
 }
